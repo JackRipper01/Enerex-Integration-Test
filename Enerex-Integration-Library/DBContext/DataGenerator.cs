@@ -20,7 +20,7 @@ namespace Enerex_Integration_Library.DBContext
                 // Insert students
                 if (!context.Students.Any())
                 {
-                    string path = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), @"Data\students.txt");
+                    string path = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "Data", "students.txt");
                     string[] studentsList = File.ReadAllLines(path);
 
                     var students = studentsList.Select(x => x.Split(','))
