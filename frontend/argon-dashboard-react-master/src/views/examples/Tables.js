@@ -17,25 +17,6 @@
 */
 // reactstrap components
 // src/views/examples/Tables.js
-/*!
-
-=========================================================
-* Argon Dashboard React - v1.2.4
-=========================================================
-
-* Product Page: https://www.creative-tim.com/product/argon-dashboard-react
-* Copyright 2024 Creative Tim (https://www.creative-tim.com)
-* Licensed under MIT (https://github.com/creativetimofficial/argon-dashboard-react/blob/master/LICENSE.md)
-
-* Coded by Creative Tim
-
-=========================================================
-
-* The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-
-*/
-// reactstrap components
-// src/views/examples/Tables.js
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { fetchAuthenticatedData } from "utils/api";
@@ -152,16 +133,8 @@ const Tables = () => {
 
   // Unified handler for all filter inputs
   const handleFilterChange = useCallback((field, value) => {
-    // --- TEMPORARY LOG FOR DEBUGGING ---
-    // Please check your browser's console when typing in the search box.
-    // If this log shows the correct typed value, but the input field is blank,
-    // it indicates a rendering issue with the reactstrap Input component or CSS.
-    // REMOVE THIS LINE AFTER VERIFICATION.
-    console.log(`Filtering by ${field}:`, value);
-    // --- END TEMPORARY LOG ---
-
-    // Reset to first page on any filter change
-    setCurrentPage(1);
+    // console.log(`Filtering by ${field}:`, value); // Keep this for debugging if needed
+    setCurrentPage(1); // Reset to first page on any filter change
 
     switch (field) {
       case 'name':
@@ -491,96 +464,27 @@ const Tables = () => {
                 {/* The global search input is removed */}
               </CardHeader>
               <Table className="align-items-center table-flush" responsive>
-                <thead className="thead-light">
-                  <tr>
-                    {/* Sorting headers */}
-                    <th scope="col" onClick={() => requestSort("name")} className={getClassNamesFor("name")}>
-                      Name
-                      {sortConfig.key === "name" && (
-                        <i className={`fas fa-sort-${sortConfig.direction === "ascending" ? "up" : "down"} ml-2`} />
-                      )}
-                    </th>
-                    <th scope="col" onClick={() => requestSort("gender")} className={getClassNamesFor("gender")}>
-                      Gender
-                      {sortConfig.key === "gender" && (
-                        <i className={`fas fa-sort-${sortConfig.direction === "ascending" ? "up" : "down"} ml-2`} />
-                      )}
-                    </th>
-                    <th scope="col" onClick={() => requestSort("age")} className={getClassNamesFor("age")}>
-                      Age
-                      {sortConfig.key === "age" && (
-                        <i className={`fas fa-sort-${sortConfig.direction === "ascending" ? "up" : "down"} ml-2`} />
-                      )}
-                    </th>
-                    <th scope="col" onClick={() => requestSort("education")} className={getClassNamesFor("education")}>
-                      Education
-                      {sortConfig.key === "education" && (
-                        <i className={`fas fa-sort-${sortConfig.direction === "ascending" ? "up" : "down"} ml-2`} />
-                      )}
-                    </th>
-                    <th scope="col" onClick={() => requestSort("academicYear")} className={getClassNamesFor("academicYear")}>
-                      Academic Year
-                      {sortConfig.key === "academicYear" && (
-                        <i className={`fas fa-sort-${sortConfig.direction === "ascending" ? "up" : "down"} ml-2`} />
-                      )}
-                    </th>
-                    <th scope="col" /> {/* Actions column */}
-                  </tr>
-                  {/* New row for individual filter inputs */}
-                  <tr>
-                    <th>
-                      <Input
-                        type="text"
-                        bsSize="sm" // Smaller input size
-                        placeholder="Filter Name..."
-                        value={filterName}
-                        onChange={(e) => handleFilterChange('name', e.target.value)}
-                        style={{ color: 'black' }} // Diagnostic: force text color
-                      />
-                    </th>
-                    <th>
-                      <Input
-                        type="text"
-                        bsSize="sm"
-                        placeholder="Filter Gender..."
-                        value={filterGender}
-                        onChange={(e) => handleFilterChange('gender', e.target.value)}
-                        style={{ color: 'black' }} // Diagnostic: force text color
-                      />
-                    </th>
-                    <th>
-                      <Input
-                        type="text"
-                        bsSize="sm"
-                        placeholder="Filter Age..."
-                        value={filterAge}
-                        onChange={(e) => handleFilterChange('age', e.target.value)}
-                        style={{ color: 'black' }} // Diagnostic: force text color
-                      />
-                    </th>
-                    <th>
-                      <Input
-                        type="text"
-                        bsSize="sm"
-                        placeholder="Filter Education..."
-                        value={filterEducation}
-                        onChange={(e) => handleFilterChange('education', e.target.value)}
-                        style={{ color: 'black' }} // Diagnostic: force text color
-                      />
-                    </th>
-                    <th>
-                      <Input
-                        type="text"
-                        bsSize="sm"
-                        placeholder="Filter Year..."
-                        value={filterAcademicYear}
-                        onChange={(e) => handleFilterChange('academicYear', e.target.value)}
-                        style={{ color: 'black' }} // Diagnostic: force text color
-                      />
-                    </th>
-                    <th /> {/* Empty cell for actions column */}
-                  </tr>
-                </thead>
+                {/*
+                  CRITICAL FIX: Compacted the entire <thead> structure to remove
+                  any implicit whitespace (newlines/indentation) between <tr> and <th> elements.
+                  This is the most aggressive approach to solve the "Whitespace text nodes cannot appear
+                  as a child of <tr>" warning.
+                */}
+                <thead className="thead-light"><tr>
+                  <th scope="col" onClick={() => requestSort("name")} className={getClassNamesFor("name")} style={{ cursor: 'pointer' }}>Name{sortConfig.key === "name" && (<i className={`fas fa-sort-${sortConfig.direction === "ascending" ? "up" : "down"} ml-2`} />)}</th>
+                  <th scope="col" onClick={() => requestSort("gender")} className={getClassNamesFor("gender")} style={{ cursor: 'pointer' }}>Gender{sortConfig.key === "gender" && (<i className={`fas fa-sort-${sortConfig.direction === "ascending" ? "up" : "down"} ml-2`} />)}</th>
+                  <th scope="col" onClick={() => requestSort("age")} className={getClassNamesFor("age")} style={{ cursor: 'pointer' }}>Age{sortConfig.key === "age" && (<i className={`fas fa-sort-${sortConfig.direction === "ascending" ? "up" : "down"} ml-2`} />)}</th>
+                  <th scope="col" onClick={() => requestSort("education")} className={getClassNamesFor("education")} style={{ cursor: 'pointer' }}>Education{sortConfig.key === "education" && (<i className={`fas fa-sort-${sortConfig.direction === "ascending" ? "up" : "down"} ml-2`} />)}</th>
+                  <th scope="col" onClick={() => requestSort("academicYear")} className={getClassNamesFor("academicYear")} style={{ cursor: 'pointer' }}>Academic Year{sortConfig.key === "academicYear" && (<i className={`fas fa-sort-${sortConfig.direction === "ascending" ? "up" : "down"} ml-2`} />)}</th>
+                  <th scope="col" />
+                </tr><tr>{/* <--- CRITICAL FIX: Ensure NO whitespace (newline/space) here */}
+                    <th><Input type="text" bsSize="sm" placeholder="Filter Name..." value={filterName} onChange={(e) => handleFilterChange('name', e.target.value)} /></th>
+                    <th><Input type="text" bsSize="sm" placeholder="Filter Gender..." value={filterGender} onChange={(e) => handleFilterChange('gender', e.target.value)} /></th>
+                    <th><Input type="text" bsSize="sm" placeholder="Filter Age..." value={filterAge} onChange={(e) => handleFilterChange('age', e.target.value)} /></th>
+                    <th><Input type="text" bsSize="sm" placeholder="Filter Education..." value={filterEducation} onChange={(e) => handleFilterChange('education', e.target.value)} /></th>
+                    <th><Input type="number" bsSize="sm" placeholder="Filter Year..." value={filterAcademicYear} onChange={(e) => handleFilterChange('academicYear', e.target.value)} /></th>
+                    <th />
+                  </tr></thead>
                 <tbody>
                   {currentStudents.length > 0 ? (
                     currentStudents.map((student) => (
