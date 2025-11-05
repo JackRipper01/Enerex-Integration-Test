@@ -53,7 +53,7 @@ import Header from "components/Headers/Header.js";
 
 // New TableRow component
 const TableRow = React.memo(({ student, toggleEditModal, toggleDeleteConfirmModal }) => {
-  console.log(`Rendering TableRow for student: ID=${student.id}, Name=${student.name}`); // Temporarily add log to confirm memoization
+  // console.log(`Rendering TableRow for student: ID=${student.id}, Name=${student.name}`);
   return (
     <tr key={student.id}>
       <th scope="row">
@@ -81,13 +81,11 @@ const TableRow = React.memo(({ student, toggleEditModal, toggleDeleteConfirmModa
           </DropdownToggle>
           <DropdownMenu className="dropdown-menu-arrow" right>
             <DropdownItem
-              // Pass the specific student to the memoized toggle function
               onClick={() => toggleEditModal(student)}
             >
               Edit
             </DropdownItem>
             <DropdownItem
-              // Pass the specific student ID to the memoized toggle function
               onClick={() => toggleDeleteConfirmModal(student.id)}
             >
               Delete
@@ -103,7 +101,10 @@ const Tables = () => {
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [searchQuery, setSearchQuery] = useState("");
+
+  // Search state: now updates immediately
+  const [searchQuery, setSearchQuery] = useState(""); // Simplified to a single state
+
   const [sortConfig, setSortConfig] = useState({ key: "id", direction: "ascending" });
   const navigate = useNavigate();
 
@@ -123,8 +124,18 @@ const Tables = () => {
   const [alertMessage, setAlertMessage] = useState(null);
   const alertTimeoutRef = useRef(null); // To clear timeout if component unmounts or new alert
 
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10); // You can make this configurable
+
+  // Simplified search input change handler - no debounce
+  const handleSearchInputChange = useCallback((e) => {
+    setSearchQuery(e.target.value); // Update search query immediately
+    setCurrentPage(1); // Reset to first page on new search
+  }, []); // Empty dependency array as it only depends on state setters
+
   const getStudents = useCallback(async () => {
-    // console.log("FETCHING STUDENTS FROM API..."); // For verification
+    // console.log("FETCHING STUDENTS FROM API...");
     setLoading(true);
     setError(null);
     try {
@@ -147,12 +158,12 @@ const Tables = () => {
 
   // --- Utility functions for sorting and filtering ---
   const sortedAndFilteredStudents = React.useMemo(() => {
-    // console.log("RE-CALCULATING SORTED/FILTERED STUDENTS"); // For verification
-    // Ensure students is an array before filtering
+    // console.log("RE-CALCULATING SORTED/FILTERED STUDENTS");
     if (!Array.isArray(students)) return [];
 
     let filtered = students.filter(student => {
-      const lowerCaseSearchQuery = searchQuery.toLowerCase();
+      const lowerCaseSearchQuery = searchQuery.toLowerCase(); // Use immediate search query
+      // Filter logic covering all displayed fields
       return (
         (student.name?.toLowerCase() ?? '').includes(lowerCaseSearchQuery) ||
         (student.education?.toLowerCase() ?? '').includes(lowerCaseSearchQuery) ||
@@ -164,16 +175,15 @@ const Tables = () => {
 
     if (sortConfig.key) {
       filtered.sort((a, b) => {
-        // Handle potential undefined/null values during sorting gracefully
-        const aValue = a[sortConfig.key] ?? ''; // Default to empty string for comparison
+        const aValue = a[sortConfig.key] ?? '';
         const bValue = b[sortConfig.key] ?? '';
 
-        // Numeric comparison for Age and AcademicYear
         if (sortConfig.key === 'age' || sortConfig.key === 'academicYear') {
+          // Numeric comparison
           return sortConfig.direction === 'ascending' ? (aValue - bValue) : (bValue - aValue);
         }
 
-        // String comparison for other fields
+        // String comparison
         if (aValue < bValue) {
           return sortConfig.direction === "ascending" ? -1 : 1;
         }
@@ -184,15 +194,16 @@ const Tables = () => {
       });
     }
     return filtered;
-  }, [students, searchQuery, sortConfig]);
+  }, [students, searchQuery, sortConfig]); // `searchQuery` is now a direct dependency
 
-  const requestSort = (key) => {
+  // Memoize requestSort to ensure stable function reference
+  const requestSort = useCallback((key) => {
     let direction = "ascending";
     if (sortConfig.key === key && sortConfig.direction === "ascending") {
       direction = "descending";
     }
     setSortConfig({ key, direction });
-  };
+  }, [sortConfig]); // Depends on sortConfig to determine next direction
 
   const getClassNamesFor = (name) => {
     if (!sortConfig) {
@@ -203,25 +214,23 @@ const Tables = () => {
   // --- End of Utility functions ---
 
   // --- Modals Toggle Functions ---
-  // Memoize these functions using useCallback to ensure stable references across renders
   const toggleAddModal = useCallback(() => {
     setIsAddModalOpen((prev) => !prev);
     setNewStudent({ name: "", gender: "", age: 0, education: "", academicYear: 0 }); // Reset form
     setAlertMessage(null); // Clear previous alerts
-  }, []); // All state setters (setIsAddModalOpen, setNewStudent, setAlertMessage) are stable
+  }, []);
 
   const toggleEditModal = useCallback((student = null) => {
     setIsEditModalOpen((prev) => !prev);
-    // Ensure `currentStudent` is a new object to avoid direct state mutation issues with nested objects
     setCurrentStudent(student ? { ...student } : null); // Set student to be edited
     setAlertMessage(null); // Clear previous alerts
-  }, []); // All state setters (setIsEditModalOpen, setCurrentStudent, setAlertMessage) are stable
+  }, []);
 
   const toggleDeleteConfirmModal = useCallback((studentId = null) => {
     setIsConfirmDeleteModalOpen((prev) => !prev);
     setStudentToDeleteId(studentId); // Set student ID to be deleted
     setAlertMessage(null); // Clear previous alerts
-  }, []); // All state setters (setIsConfirmDeleteModalOpen, setStudentToDeleteId, setAlertMessage) are stable
+  }, []);
   // --- End of Modals Toggle Functions ---
 
   // --- CRUD Operations ---
@@ -242,7 +251,6 @@ const Tables = () => {
     if (!currentStudent || !currentStudent.id) return;
 
     try {
-      // The backend uses PUT /api/Student/UpdateStudent/{studentId} with the student in the body
       await fetchAuthenticatedData(`/Student/UpdateStudent/${currentStudent.id}`, "PUT", currentStudent);
       await getStudents(); // Refresh student list
       toggleEditModal(); // Close modal
@@ -267,7 +275,7 @@ const Tables = () => {
   // --- End of CRUD Operations ---
 
   // --- Alert Message Handler ---
-  const showAlert = (message, type) => {
+  const showAlert = useCallback((message, type) => {
     if (alertTimeoutRef.current) {
       clearTimeout(alertTimeoutRef.current);
     }
@@ -275,7 +283,7 @@ const Tables = () => {
     alertTimeoutRef.current = setTimeout(() => {
       setAlertMessage(null);
     }, 5000); // Alert disappears after 5 seconds
-  };
+  }, []);
 
   useEffect(() => {
     return () => { // Cleanup function for alert timeout
@@ -285,6 +293,110 @@ const Tables = () => {
     };
   }, []);
   // --- End of Alert Message Handler ---
+
+
+  // --- Pagination Logic ---
+  const totalStudents = sortedAndFilteredStudents.length;
+  const totalPages = Math.ceil(totalStudents / itemsPerPage);
+
+  // Get current students for the page
+  const currentStudents = React.useMemo(() => {
+    const indexOfLastStudent = currentPage * itemsPerPage;
+    const indexOfFirstStudent = indexOfLastStudent - itemsPerPage;
+    return sortedAndFilteredStudents.slice(indexOfFirstStudent, indexOfLastStudent);
+  }, [currentPage, itemsPerPage, sortedAndFilteredStudents]);
+
+  // Change page
+  const paginate = useCallback((pageNumber) => {
+    // Ensure pageNumber is within valid range
+    if (pageNumber < 1 || pageNumber > totalPages || pageNumber === currentPage) {
+      return;
+    }
+    setCurrentPage(pageNumber);
+  }, [currentPage, totalPages]); // Dependencies: totalPages to know boundaries, currentPage to prevent no-op
+
+
+  // New function for dynamic pagination items
+  const renderDynamicPaginationItems = useCallback(() => {
+    const pageButtons = [];
+    const siblingCount = 1; // How many pages to show before and after the current page
+    const firstPage = 1;
+    const lastPage = totalPages;
+
+    // Don't render pagination if there's only one page or no students
+    if (totalPages <= 1) {
+      return null;
+    }
+
+    // Determine if we need to show the first/last page and ellipses
+    const showFirstPage = currentPage > firstPage + siblingCount;
+    const showLastPage = currentPage < lastPage - siblingCount;
+    const showLeftEllipsis = currentPage > firstPage + siblingCount + 1;
+    const showRightEllipsis = currentPage < lastPage - siblingCount - 1;
+
+
+    if (showFirstPage) {
+      pageButtons.push(
+        <PaginationItem key={firstPage}>
+          <PaginationLink href="#pablo" onClick={(e) => { e.preventDefault(); paginate(firstPage); }}>{firstPage}</PaginationLink>
+        </PaginationItem>
+      );
+    }
+
+    if (showLeftEllipsis) { // Add ellipsis if there's a gap
+      pageButtons.push(
+        <PaginationItem key="ellipsis-start" disabled>
+          <PaginationLink href="#pablo" onClick={(e) => e.preventDefault()}>...</PaginationLink>
+        </PaginationItem>
+      );
+    }
+
+    // Render siblings around the current page
+    const startSiblingPage = Math.max(firstPage, currentPage - siblingCount);
+    const endSiblingPage = Math.min(lastPage, currentPage + siblingCount);
+
+    for (let i = startSiblingPage; i <= endSiblingPage; i++) {
+      // Avoid duplicating first/last page if they are within sibling range AND explicitly shown
+      if ((i === firstPage && showFirstPage) || (i === lastPage && showLastPage)) continue;
+
+      pageButtons.push(
+        <PaginationItem key={i} className={i === currentPage ? "active" : ""}>
+          <PaginationLink href="#pablo" onClick={(e) => { e.preventDefault(); paginate(i); }}>{i}</PaginationLink>
+        </PaginationItem>
+      );
+    }
+
+    if (showRightEllipsis) { // Add ellipsis if there's a gap
+      pageButtons.push(
+        <PaginationItem key="ellipsis-end" disabled>
+          <PaginationLink href="#pablo" onClick={(e) => e.preventDefault()}>...</PaginationLink>
+        </PaginationItem>
+      );
+    }
+
+    if (showLastPage) {
+      pageButtons.push(
+        <PaginationItem key={lastPage}>
+          <PaginationLink href="#pablo" onClick={(e) => { e.preventDefault(); paginate(lastPage); }}>{lastPage}</PaginationLink>
+        </PaginationItem>
+      );
+    }
+
+    if (pageButtons.length === 0 && totalPages > 0) {
+      for (let i = 1; i <= totalPages; i++) {
+        pageButtons.push(
+          <PaginationItem key={i} className={i === currentPage ? "active" : ""}>
+            <PaginationLink href="#pablo" onClick={(e) => { e.preventDefault(); paginate(i); }}>{i}</PaginationLink>
+          </PaginationItem>
+        );
+      }
+    }
+
+
+    return pageButtons;
+  }, [currentPage, totalPages, paginate]); // Dependencies for useCallback
+  // --- End of Pagination Logic ---
+
 
   // Display loading, error, or data
   if (loading) return <Container className="mt--7" fluid><p>Loading students...</p></Container>;
@@ -313,7 +425,7 @@ const Tables = () => {
                   <Col xs="4" className="text-right">
                     <Button
                       color="primary"
-                      onClick={toggleAddModal} // Open Add Student Modal
+                      onClick={toggleAddModal}
                       size="sm"
                     >
                       Add Student
@@ -325,14 +437,15 @@ const Tables = () => {
                     <Input
                       type="text"
                       placeholder="Search students..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
+                      value={searchQuery} // Use the direct search query
+                      onChange={handleSearchInputChange} // Use the immediate handler
                     />
                   </FormGroup>
                 </Form>
               </CardHeader>
               <Table className="align-items-center table-flush" responsive>
                 <thead className="thead-light"><tr>
+                  {/* Sorting enabled for all fields */}
                   <th scope="col" onClick={() => requestSort("name")} className={getClassNamesFor("name")}>
                     Name
                     {sortConfig.key === "name" && (
@@ -366,61 +479,46 @@ const Tables = () => {
                   <th scope="col" />
                 </tr></thead>
                 <tbody>
-                  {sortedAndFilteredStudents.map((student) => (
-                    <TableRow
-                      key={student.id} // Key remains on the outer component
-                      student={student}
-                      toggleEditModal={toggleEditModal} // Now a stable function reference
-                      toggleDeleteConfirmModal={toggleDeleteConfirmModal} // Now a stable function reference
-                    />
-                  ))}
+                  {currentStudents.length > 0 ? (
+                    currentStudents.map((student) => (
+                      <TableRow
+                        key={student.id}
+                        student={student}
+                        toggleEditModal={toggleEditModal}
+                        toggleDeleteConfirmModal={toggleDeleteConfirmModal}
+                      />
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan="6" className="text-center">No students found.</td>
+                    </tr>
+                  )}
                 </tbody>
               </Table>
               <CardFooter className="py-4">
-                {/* Pagination (can be implemented later for large datasets) */}
+                {/* Pagination */}
                 <nav aria-label="...">
                   <Pagination
                     className="pagination justify-content-end mb-0"
                     listClassName="justify-content-end mb-0"
                   >
-                    <PaginationItem className="disabled">
+                    <PaginationItem disabled={currentPage === 1 || totalPages === 0}>
                       <PaginationLink
                         href="#pablo"
-                        onClick={(e) => e.preventDefault()}
+                        onClick={(e) => { e.preventDefault(); paginate(currentPage - 1); }}
                         tabIndex="-1"
                       >
                         <i className="fas fa-angle-left" />
                         <span className="sr-only">Previous</span>
                       </PaginationLink>
                     </PaginationItem>
-                    <PaginationItem className="active">
+
+                    {renderDynamicPaginationItems()} {/* Call the new dynamic render function */}
+
+                    <PaginationItem disabled={currentPage === totalPages || totalPages === 0}>
                       <PaginationLink
                         href="#pablo"
-                        onClick={(e) => e.preventDefault()}
-                      >
-                        1
-                      </PaginationLink>
-                    </PaginationItem>
-                    <PaginationItem>
-                      <PaginationLink
-                        href="#pablo"
-                        onClick={(e) => e.preventDefault()}
-                      >
-                        2 <span className="sr-only">(current)</span>
-                      </PaginationLink>
-                    </PaginationItem>
-                    <PaginationItem>
-                      <PaginationLink
-                        href="#pablo"
-                        onClick={(e) => e.preventDefault()}
-                      >
-                        3
-                      </PaginationLink>
-                    </PaginationItem>
-                    <PaginationItem>
-                      <PaginationLink
-                        href="#pablo"
-                        onClick={(e) => e.preventDefault()}
+                        onClick={(e) => { e.preventDefault(); paginate(currentPage + 1); }}
                       >
                         <i className="fas fa-angle-right" />
                         <span className="sr-only">Next</span>
