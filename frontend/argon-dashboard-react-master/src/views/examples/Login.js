@@ -15,7 +15,8 @@
 * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 
 */
-
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom"; // Import useNavigate for redirection
 // reactstrap components
 import {
   Button,
@@ -30,9 +31,48 @@ import {
   InputGroup,
   Row,
   Col,
+  Alert // Added Alert for displaying messages
 } from "reactstrap";
 
 const Login = () => {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState(""); // State for displaying error messages
+  const navigate = useNavigate(); // Hook for programmatic navigation
+
+  const handleLogin = async (e) => {
+    e.preventDefault(); // Prevent default form submission behavior
+
+    setError(""); // Clear any previous errors
+
+    try {
+      const response = await fetch("http://localhost:5290/api/Login/Authorize", { // Make sure this URL matches your backend!
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          Email: email,
+          Password: password,
+        }),
+      });
+
+      if (!response.ok) {
+        // If response is not 2xx, throw an error
+        const errorData = await response.text(); // Get response body as text
+        throw new Error(errorData || "Authentication failed. Please check your credentials.");
+      }
+
+      const token = await response.text(); // Assuming the backend returns the token as plain text
+      localStorage.setItem("authToken", token); // Store the token
+      navigate("/admin/index"); // Redirect to the dashboard
+
+    } catch (err) {
+      console.error("Login error:", err);
+      setError(err.message || "An unexpected error occurred during login."); // Display a user-friendly error
+    }
+  };
+
   return (
     <>
       <Col lg="5" md="7">
@@ -79,10 +119,8 @@ const Login = () => {
             </div>
           </CardHeader>
           <CardBody className="px-lg-5 py-lg-5">
-            <div className="text-center text-muted mb-4">
-              <small>Or sign in with credentials</small>
-            </div>
-            <Form role="form">
+            {error && <Alert color="danger">{error}</Alert>} {/* Display error message if present */}
+            <Form role="form" onSubmit={handleLogin}> {/* Attach onSubmit handler */}
               <FormGroup className="mb-3">
                 <InputGroup className="input-group-alternative">
                   <InputGroupAddon addonType="prepend">
@@ -93,7 +131,10 @@ const Login = () => {
                   <Input
                     placeholder="Email"
                     type="email"
-                    autoComplete="new-email"
+                    autoComplete="email" // Changed from new-email for better browser autofill
+                    value={email} // Controlled component: value tied to state
+                    onChange={(e) => setEmail(e.target.value)} // Update state on change
+                    required // Make email field required
                   />
                 </InputGroup>
               </FormGroup>
@@ -107,7 +148,10 @@ const Login = () => {
                   <Input
                     placeholder="Password"
                     type="password"
-                    autoComplete="new-password"
+                    autoComplete="current-password" // Changed from new-password
+                    value={password} // Controlled component
+                    onChange={(e) => setPassword(e.target.value)} // Update state on change
+                    required // Make password field required
                   />
                 </InputGroup>
               </FormGroup>
@@ -125,7 +169,7 @@ const Login = () => {
                 </label>
               </div>
               <div className="text-center">
-                <Button className="my-4" color="primary" type="button">
+                <Button className="my-4" color="primary" type="submit"> {/* Changed type to submit */}
                   Sign in
                 </Button>
               </div>
