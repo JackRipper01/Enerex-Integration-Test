@@ -17,6 +17,25 @@
 */
 // reactstrap components
 // src/views/examples/Tables.js
+/*!
+
+=========================================================
+* Argon Dashboard React - v1.2.4
+=========================================================
+
+* Product Page: https://www.creative-tim.com/product/argon-dashboard-react
+* Copyright 2024 Creative Tim (https://www.creative-tim.com)
+* Licensed under MIT (https://github.com/creativetimofficial/argon-dashboard-react/blob/master/LICENSE.md)
+
+* Coded by Creative Tim
+
+=========================================================
+
+* The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+*/
+// reactstrap components
+// src/views/examples/Tables.js
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { fetchAuthenticatedData } from "utils/api";
@@ -53,7 +72,6 @@ import Header from "components/Headers/Header.js";
 
 // New TableRow component
 const TableRow = React.memo(({ student, toggleEditModal, toggleDeleteConfirmModal }) => {
-  // console.log(`Rendering TableRow for student: ID=${student.id}, Name=${student.name}`);
   return (
     <tr key={student.id}>
       <th scope="row">
@@ -102,8 +120,12 @@ const Tables = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Search state: now updates immediately
-  const [searchQuery, setSearchQuery] = useState(""); // Simplified to a single state
+  // Individual search states for each field
+  const [filterName, setFilterName] = useState("");
+  const [filterGender, setFilterGender] = useState("");
+  const [filterAge, setFilterAge] = useState("");
+  const [filterEducation, setFilterEducation] = useState("");
+  const [filterAcademicYear, setFilterAcademicYear] = useState("");
 
   const [sortConfig, setSortConfig] = useState({ key: "id", direction: "ascending" });
   const navigate = useNavigate();
@@ -128,14 +150,41 @@ const Tables = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10); // You can make this configurable
 
-  // Simplified search input change handler - no debounce
-  const handleSearchInputChange = useCallback((e) => {
-    setSearchQuery(e.target.value); // Update search query immediately
-    setCurrentPage(1); // Reset to first page on new search
-  }, []); // Empty dependency array as it only depends on state setters
+  // Unified handler for all filter inputs
+  const handleFilterChange = useCallback((field, value) => {
+    // --- TEMPORARY LOG FOR DEBUGGING ---
+    // Please check your browser's console when typing in the search box.
+    // If this log shows the correct typed value, but the input field is blank,
+    // it indicates a rendering issue with the reactstrap Input component or CSS.
+    // REMOVE THIS LINE AFTER VERIFICATION.
+    console.log(`Filtering by ${field}:`, value);
+    // --- END TEMPORARY LOG ---
+
+    // Reset to first page on any filter change
+    setCurrentPage(1);
+
+    switch (field) {
+      case 'name':
+        setFilterName(value);
+        break;
+      case 'gender':
+        setFilterGender(value);
+        break;
+      case 'age':
+        setFilterAge(value);
+        break;
+      case 'education':
+        setFilterEducation(value);
+        break;
+      case 'academicYear':
+        setFilterAcademicYear(value);
+        break;
+      default:
+        break;
+    }
+  }, []); // Dependencies are just state setters, which are stable
 
   const getStudents = useCallback(async () => {
-    // console.log("FETCHING STUDENTS FROM API...");
     setLoading(true);
     setError(null);
     try {
@@ -158,19 +207,17 @@ const Tables = () => {
 
   // --- Utility functions for sorting and filtering ---
   const sortedAndFilteredStudents = React.useMemo(() => {
-    // console.log("RE-CALCULATING SORTED/FILTERED STUDENTS");
     if (!Array.isArray(students)) return [];
 
     let filtered = students.filter(student => {
-      const lowerCaseSearchQuery = searchQuery.toLowerCase(); // Use immediate search query
-      // Filter logic covering all displayed fields
-      return (
-        (student.name?.toLowerCase() ?? '').includes(lowerCaseSearchQuery) ||
-        (student.education?.toLowerCase() ?? '').includes(lowerCaseSearchQuery) ||
-        (student.gender?.toLowerCase() ?? '').includes(lowerCaseSearchQuery) ||
-        (student.age?.toString() ?? '').includes(lowerCaseSearchQuery) ||
-        (student.academicYear?.toString() ?? '').includes(lowerCaseSearchQuery)
-      );
+      // Apply individual filters
+      const matchesName = filterName ? (student.name?.toLowerCase() ?? '').includes(filterName.toLowerCase()) : true;
+      const matchesGender = filterGender ? (student.gender?.toLowerCase() ?? '').includes(filterGender.toLowerCase()) : true;
+      const matchesAge = filterAge ? (student.age?.toString() ?? '').includes(filterAge.toLowerCase()) : true;
+      const matchesEducation = filterEducation ? (student.education?.toLowerCase() ?? '').includes(filterEducation.toLowerCase()) : true;
+      const matchesAcademicYear = filterAcademicYear ? (student.academicYear?.toString() ?? '').includes(filterAcademicYear.toLowerCase()) : true;
+
+      return matchesName && matchesGender && matchesAge && matchesEducation && matchesAcademicYear;
     });
 
     if (sortConfig.key) {
@@ -194,7 +241,15 @@ const Tables = () => {
       });
     }
     return filtered;
-  }, [students, searchQuery, sortConfig]); // `searchQuery` is now a direct dependency
+  }, [
+    students,
+    filterName,
+    filterGender,
+    filterAge,
+    filterEducation,
+    filterAcademicYear,
+    sortConfig
+  ]); // All individual filter states are now dependencies
 
   // Memoize requestSort to ensure stable function reference
   const requestSort = useCallback((key) => {
@@ -382,6 +437,7 @@ const Tables = () => {
       );
     }
 
+    // Fallback for very few pages, ensuring all are shown without ellipses
     if (pageButtons.length === 0 && totalPages > 0) {
       for (let i = 1; i <= totalPages; i++) {
         pageButtons.push(
@@ -432,52 +488,99 @@ const Tables = () => {
                     </Button>
                   </Col>
                 </Row>
-                <Form className="navbar-search navbar-search-dark form-inline mt-3">
-                  <FormGroup className="mb-0">
-                    <Input
-                      type="text"
-                      placeholder="Search students..."
-                      value={searchQuery} // Use the direct search query
-                      onChange={handleSearchInputChange} // Use the immediate handler
-                    />
-                  </FormGroup>
-                </Form>
+                {/* The global search input is removed */}
               </CardHeader>
               <Table className="align-items-center table-flush" responsive>
-                <thead className="thead-light"><tr>
-                  {/* Sorting enabled for all fields */}
-                  <th scope="col" onClick={() => requestSort("name")} className={getClassNamesFor("name")}>
-                    Name
-                    {sortConfig.key === "name" && (
-                      <i className={`fas fa-sort-${sortConfig.direction === "ascending" ? "up" : "down"} ml-2`} />
-                    )}
-                  </th>
-                  <th scope="col" onClick={() => requestSort("gender")} className={getClassNamesFor("gender")}>
-                    Gender
-                    {sortConfig.key === "gender" && (
-                      <i className={`fas fa-sort-${sortConfig.direction === "ascending" ? "up" : "down"} ml-2`} />
-                    )}
-                  </th>
-                  <th scope="col" onClick={() => requestSort("age")} className={getClassNamesFor("age")}>
-                    Age
-                    {sortConfig.key === "age" && (
-                      <i className={`fas fa-sort-${sortConfig.direction === "ascending" ? "up" : "down"} ml-2`} />
-                    )}
-                  </th>
-                  <th scope="col" onClick={() => requestSort("education")} className={getClassNamesFor("education")}>
-                    Education
-                    {sortConfig.key === "education" && (
-                      <i className={`fas fa-sort-${sortConfig.direction === "ascending" ? "up" : "down"} ml-2`} />
-                    )}
-                  </th>
-                  <th scope="col" onClick={() => requestSort("academicYear")} className={getClassNamesFor("academicYear")}>
-                    Academic Year
-                    {sortConfig.key === "academicYear" && (
-                      <i className={`fas fa-sort-${sortConfig.direction === "ascending" ? "up" : "down"} ml-2`} />
-                    )}
-                  </th>
-                  <th scope="col" />
-                </tr></thead>
+                <thead className="thead-light">
+                  <tr>
+                    {/* Sorting headers */}
+                    <th scope="col" onClick={() => requestSort("name")} className={getClassNamesFor("name")}>
+                      Name
+                      {sortConfig.key === "name" && (
+                        <i className={`fas fa-sort-${sortConfig.direction === "ascending" ? "up" : "down"} ml-2`} />
+                      )}
+                    </th>
+                    <th scope="col" onClick={() => requestSort("gender")} className={getClassNamesFor("gender")}>
+                      Gender
+                      {sortConfig.key === "gender" && (
+                        <i className={`fas fa-sort-${sortConfig.direction === "ascending" ? "up" : "down"} ml-2`} />
+                      )}
+                    </th>
+                    <th scope="col" onClick={() => requestSort("age")} className={getClassNamesFor("age")}>
+                      Age
+                      {sortConfig.key === "age" && (
+                        <i className={`fas fa-sort-${sortConfig.direction === "ascending" ? "up" : "down"} ml-2`} />
+                      )}
+                    </th>
+                    <th scope="col" onClick={() => requestSort("education")} className={getClassNamesFor("education")}>
+                      Education
+                      {sortConfig.key === "education" && (
+                        <i className={`fas fa-sort-${sortConfig.direction === "ascending" ? "up" : "down"} ml-2`} />
+                      )}
+                    </th>
+                    <th scope="col" onClick={() => requestSort("academicYear")} className={getClassNamesFor("academicYear")}>
+                      Academic Year
+                      {sortConfig.key === "academicYear" && (
+                        <i className={`fas fa-sort-${sortConfig.direction === "ascending" ? "up" : "down"} ml-2`} />
+                      )}
+                    </th>
+                    <th scope="col" /> {/* Actions column */}
+                  </tr>
+                  {/* New row for individual filter inputs */}
+                  <tr>
+                    <th>
+                      <Input
+                        type="text"
+                        bsSize="sm" // Smaller input size
+                        placeholder="Filter Name..."
+                        value={filterName}
+                        onChange={(e) => handleFilterChange('name', e.target.value)}
+                        style={{ color: 'black' }} // Diagnostic: force text color
+                      />
+                    </th>
+                    <th>
+                      <Input
+                        type="text"
+                        bsSize="sm"
+                        placeholder="Filter Gender..."
+                        value={filterGender}
+                        onChange={(e) => handleFilterChange('gender', e.target.value)}
+                        style={{ color: 'black' }} // Diagnostic: force text color
+                      />
+                    </th>
+                    <th>
+                      <Input
+                        type="text"
+                        bsSize="sm"
+                        placeholder="Filter Age..."
+                        value={filterAge}
+                        onChange={(e) => handleFilterChange('age', e.target.value)}
+                        style={{ color: 'black' }} // Diagnostic: force text color
+                      />
+                    </th>
+                    <th>
+                      <Input
+                        type="text"
+                        bsSize="sm"
+                        placeholder="Filter Education..."
+                        value={filterEducation}
+                        onChange={(e) => handleFilterChange('education', e.target.value)}
+                        style={{ color: 'black' }} // Diagnostic: force text color
+                      />
+                    </th>
+                    <th>
+                      <Input
+                        type="text"
+                        bsSize="sm"
+                        placeholder="Filter Year..."
+                        value={filterAcademicYear}
+                        onChange={(e) => handleFilterChange('academicYear', e.target.value)}
+                        style={{ color: 'black' }} // Diagnostic: force text color
+                      />
+                    </th>
+                    <th /> {/* Empty cell for actions column */}
+                  </tr>
+                </thead>
                 <tbody>
                   {currentStudents.length > 0 ? (
                     currentStudents.map((student) => (
@@ -513,7 +616,7 @@ const Tables = () => {
                       </PaginationLink>
                     </PaginationItem>
 
-                    {renderDynamicPaginationItems()} {/* Call the new dynamic render function */}
+                    {renderDynamicPaginationItems()}
 
                     <PaginationItem disabled={currentPage === totalPages || totalPages === 0}>
                       <PaginationLink
