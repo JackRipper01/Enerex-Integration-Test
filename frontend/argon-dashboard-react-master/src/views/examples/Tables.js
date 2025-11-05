@@ -108,7 +108,7 @@ const Tables = () => {
   const [filterEducation, setFilterEducation] = useState("");
   const [filterAcademicYear, setFilterAcademicYear] = useState("");
 
-  const [sortConfig, setSortConfig] = useState({ key: "id", direction: "ascending" });
+  const [sortConfig, setSortConfig] = useState({ key: "name", direction: "ascending" });
   const navigate = useNavigate();
 
   // State for Add Student Modal
@@ -133,7 +133,6 @@ const Tables = () => {
 
   // Unified handler for all filter inputs
   const handleFilterChange = useCallback((field, value) => {
-    // console.log(`Filtering by ${field}:`, value); // Keep this for debugging if needed
     setCurrentPage(1); // Reset to first page on any filter change
 
     switch (field) {
@@ -180,6 +179,8 @@ const Tables = () => {
 
   // --- Utility functions for sorting and filtering ---
   const sortedAndFilteredStudents = React.useMemo(() => {
+    // console.log("Re-calculating sorted and filtered students..."); // Removed debugging log
+
     if (!Array.isArray(students)) return [];
 
     let filtered = students.filter(student => {
@@ -195,19 +196,30 @@ const Tables = () => {
 
     if (sortConfig.key) {
       filtered.sort((a, b) => {
-        const aValue = a[sortConfig.key] ?? '';
-        const bValue = b[sortConfig.key] ?? '';
+        const aValue = a[sortConfig.key];
+        const bValue = b[sortConfig.key];
 
-        if (sortConfig.key === 'age' || sortConfig.key === 'academicYear') {
-          // Numeric comparison
-          return sortConfig.direction === 'ascending' ? (aValue - bValue) : (bValue - aValue);
+        // Explicitly handle ID, Age, AcademicYear as numbers for sorting
+        if (sortConfig.key === 'id' || sortConfig.key === 'age' || sortConfig.key === 'academicYear') {
+          const numA = Number(aValue);
+          const numB = Number(bValue);
+
+          if (numA < numB) {
+            return sortConfig.direction === 'ascending' ? -1 : 1;
+          }
+          if (numA > numB) {
+            return sortConfig.direction === 'ascending' ? 1 : -1;
+          }
+          return 0;
         }
 
-        // String comparison
-        if (aValue < bValue) {
+        // String comparison for other fields
+        const stringA = (aValue ?? '').toString().toLowerCase();
+        const stringB = (bValue ?? '').toString().toLowerCase();
+        if (stringA < stringB) {
           return sortConfig.direction === "ascending" ? -1 : 1;
         }
-        if (aValue > bValue) {
+        if (stringA > stringB) {
           return sortConfig.direction === "ascending" ? 1 : -1;
         }
         return 0;
@@ -215,14 +227,14 @@ const Tables = () => {
     }
     return filtered;
   }, [
-    students,
+    students, // Dependency for when student list changes (add/update/delete)
     filterName,
     filterGender,
     filterAge,
     filterEducation,
     filterAcademicYear,
     sortConfig
-  ]); // All individual filter states are now dependencies
+  ]); // All individual filter states and sortConfig are now dependencies
 
   // Memoize requestSort to ensure stable function reference
   const requestSort = useCallback((key) => {
@@ -461,23 +473,18 @@ const Tables = () => {
                     </Button>
                   </Col>
                 </Row>
-                {/* The global search input is removed */}
               </CardHeader>
               <Table className="align-items-center table-flush" responsive>
-                {/*
-                  CRITICAL FIX: Compacted the entire <thead> structure to remove
-                  any implicit whitespace (newlines/indentation) between <tr> and <th> elements.
-                  This is the most aggressive approach to solve the "Whitespace text nodes cannot appear
-                  as a child of <tr>" warning.
-                */}
                 <thead className="thead-light"><tr>
+                  {/* Removed temporary ID column header */}
                   <th scope="col" onClick={() => requestSort("name")} className={getClassNamesFor("name")} style={{ cursor: 'pointer' }}>Name{sortConfig.key === "name" && (<i className={`fas fa-sort-${sortConfig.direction === "ascending" ? "up" : "down"} ml-2`} />)}</th>
                   <th scope="col" onClick={() => requestSort("gender")} className={getClassNamesFor("gender")} style={{ cursor: 'pointer' }}>Gender{sortConfig.key === "gender" && (<i className={`fas fa-sort-${sortConfig.direction === "ascending" ? "up" : "down"} ml-2`} />)}</th>
                   <th scope="col" onClick={() => requestSort("age")} className={getClassNamesFor("age")} style={{ cursor: 'pointer' }}>Age{sortConfig.key === "age" && (<i className={`fas fa-sort-${sortConfig.direction === "ascending" ? "up" : "down"} ml-2`} />)}</th>
                   <th scope="col" onClick={() => requestSort("education")} className={getClassNamesFor("education")} style={{ cursor: 'pointer' }}>Education{sortConfig.key === "education" && (<i className={`fas fa-sort-${sortConfig.direction === "ascending" ? "up" : "down"} ml-2`} />)}</th>
                   <th scope="col" onClick={() => requestSort("academicYear")} className={getClassNamesFor("academicYear")} style={{ cursor: 'pointer' }}>Academic Year{sortConfig.key === "academicYear" && (<i className={`fas fa-sort-${sortConfig.direction === "ascending" ? "up" : "down"} ml-2`} />)}</th>
                   <th scope="col" />
-                </tr><tr>{/* <--- CRITICAL FIX: Ensure NO whitespace (newline/space) here */}
+                </tr><tr>
+                    {/* Removed temporary ID filter input */}
                     <th><Input type="text" bsSize="sm" placeholder="Filter Name..." value={filterName} onChange={(e) => handleFilterChange('name', e.target.value)} /></th>
                     <th><Input type="text" bsSize="sm" placeholder="Filter Gender..." value={filterGender} onChange={(e) => handleFilterChange('gender', e.target.value)} /></th>
                     <th><Input type="text" bsSize="sm" placeholder="Filter Age..." value={filterAge} onChange={(e) => handleFilterChange('age', e.target.value)} /></th>
@@ -497,7 +504,7 @@ const Tables = () => {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan="6" className="text-center">No students found.</td>
+                      <td colSpan="6" className="text-center">No students found.</td> {/* Adjusted colspan back to 6 */}
                     </tr>
                   )}
                 </tbody>
