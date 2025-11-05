@@ -108,6 +108,7 @@ const Tables = () => {
   const [filterEducation, setFilterEducation] = useState("");
   const [filterAcademicYear, setFilterAcademicYear] = useState("");
 
+  // Default sort is by 'name' in ascending order now, as 'id' is no longer a displayed column by default.
   const [sortConfig, setSortConfig] = useState({ key: "name", direction: "ascending" });
   const navigate = useNavigate();
 
@@ -177,19 +178,34 @@ const Tables = () => {
     getStudents();
   }, [getStudents]);
 
+  // --- Utility function for applying filter logic (contains vs. exact) ---
+  const applyFilter = useCallback((studentValue, filterValue) => {
+    if (!filterValue) return true; // No filter applied
+
+    const lowerCaseFilter = filterValue.toLowerCase();
+    const lowerCaseStudentValue = (studentValue ?? '').toString().toLowerCase();
+
+    // Check for exact match syntax: filter value wrapped in double quotes
+    if (lowerCaseFilter.startsWith('"') && lowerCaseFilter.endsWith('"')) {
+      const exactMatchValue = lowerCaseFilter.substring(1, lowerCaseFilter.length - 1);
+      return lowerCaseStudentValue === exactMatchValue;
+    } else {
+      // Default to "contains" search
+      return lowerCaseStudentValue.includes(lowerCaseFilter);
+    }
+  }, []); // No dependencies, this function is stable
+
   // --- Utility functions for sorting and filtering ---
   const sortedAndFilteredStudents = React.useMemo(() => {
-    // console.log("Re-calculating sorted and filtered students..."); // Removed debugging log
-
     if (!Array.isArray(students)) return [];
 
     let filtered = students.filter(student => {
-      // Apply individual filters
-      const matchesName = filterName ? (student.name?.toLowerCase() ?? '').includes(filterName.toLowerCase()) : true;
-      const matchesGender = filterGender ? (student.gender?.toLowerCase() ?? '').includes(filterGender.toLowerCase()) : true;
-      const matchesAge = filterAge ? (student.age?.toString() ?? '').includes(filterAge.toLowerCase()) : true;
-      const matchesEducation = filterEducation ? (student.education?.toLowerCase() ?? '').includes(filterEducation.toLowerCase()) : true;
-      const matchesAcademicYear = filterAcademicYear ? (student.academicYear?.toString() ?? '').includes(filterAcademicYear.toLowerCase()) : true;
+      // Apply individual filters using the new applyFilter utility
+      const matchesName = applyFilter(student.name, filterName);
+      const matchesGender = applyFilter(student.gender, filterGender);
+      const matchesAge = applyFilter(student.age, filterAge);
+      const matchesEducation = applyFilter(student.education, filterEducation);
+      const matchesAcademicYear = applyFilter(student.academicYear, filterAcademicYear);
 
       return matchesName && matchesGender && matchesAge && matchesEducation && matchesAcademicYear;
     });
@@ -233,7 +249,8 @@ const Tables = () => {
     filterAge,
     filterEducation,
     filterAcademicYear,
-    sortConfig
+    sortConfig,
+    applyFilter // applyFilter is now a dependency for useMemo
   ]); // All individual filter states and sortConfig are now dependencies
 
   // Memoize requestSort to ensure stable function reference
@@ -476,7 +493,6 @@ const Tables = () => {
               </CardHeader>
               <Table className="align-items-center table-flush" responsive>
                 <thead className="thead-light"><tr>
-                  {/* Removed temporary ID column header */}
                   <th scope="col" onClick={() => requestSort("name")} className={getClassNamesFor("name")} style={{ cursor: 'pointer' }}>Name{sortConfig.key === "name" && (<i className={`fas fa-sort-${sortConfig.direction === "ascending" ? "up" : "down"} ml-2`} />)}</th>
                   <th scope="col" onClick={() => requestSort("gender")} className={getClassNamesFor("gender")} style={{ cursor: 'pointer' }}>Gender{sortConfig.key === "gender" && (<i className={`fas fa-sort-${sortConfig.direction === "ascending" ? "up" : "down"} ml-2`} />)}</th>
                   <th scope="col" onClick={() => requestSort("age")} className={getClassNamesFor("age")} style={{ cursor: 'pointer' }}>Age{sortConfig.key === "age" && (<i className={`fas fa-sort-${sortConfig.direction === "ascending" ? "up" : "down"} ml-2`} />)}</th>
@@ -484,12 +500,11 @@ const Tables = () => {
                   <th scope="col" onClick={() => requestSort("academicYear")} className={getClassNamesFor("academicYear")} style={{ cursor: 'pointer' }}>Academic Year{sortConfig.key === "academicYear" && (<i className={`fas fa-sort-${sortConfig.direction === "ascending" ? "up" : "down"} ml-2`} />)}</th>
                   <th scope="col" />
                 </tr><tr>
-                    {/* Removed temporary ID filter input */}
-                    <th><Input type="text" bsSize="sm" placeholder="Filter Name..." value={filterName} onChange={(e) => handleFilterChange('name', e.target.value)} /></th>
-                    <th><Input type="text" bsSize="sm" placeholder="Filter Gender..." value={filterGender} onChange={(e) => handleFilterChange('gender', e.target.value)} /></th>
-                    <th><Input type="text" bsSize="sm" placeholder="Filter Age..." value={filterAge} onChange={(e) => handleFilterChange('age', e.target.value)} /></th>
-                    <th><Input type="text" bsSize="sm" placeholder="Filter Education..." value={filterEducation} onChange={(e) => handleFilterChange('education', e.target.value)} /></th>
-                    <th><Input type="number" bsSize="sm" placeholder="Filter Year..." value={filterAcademicYear} onChange={(e) => handleFilterChange('academicYear', e.target.value)} /></th>
+                    <th><Input type="text" bsSize="sm" placeholder="Filter Name (use quotes for exact)" value={filterName} onChange={(e) => handleFilterChange('name', e.target.value)} style={{ color: 'black' }} /></th>
+                    <th><Input type="text" bsSize="sm" placeholder="Filter Gender (use quotes for exact)" value={filterGender} onChange={(e) => handleFilterChange('gender', e.target.value)} style={{ color: 'black' }} /></th>
+                    <th><Input type="text" bsSize="sm" placeholder="Filter Age (use quotes for exact)" value={filterAge} onChange={(e) => handleFilterChange('age', e.target.value)} style={{ color: 'black' }} /></th>
+                    <th><Input type="text" bsSize="sm" placeholder="Filter Education (use quotes for exact)" value={filterEducation} onChange={(e) => handleFilterChange('education', e.target.value)} style={{ color: 'black' }} /></th>
+                    <th><Input type="number" bsSize="sm" placeholder="Filter Year (use quotes for exact)" value={filterAcademicYear} onChange={(e) => handleFilterChange('academicYear', e.target.value)} style={{ color: 'black' }} /></th>
                     <th />
                   </tr></thead>
                 <tbody>
@@ -504,7 +519,7 @@ const Tables = () => {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan="6" className="text-center">No students found.</td> {/* Adjusted colspan back to 6 */}
+                      <td colSpan="6" className="text-center">No students found.</td>
                     </tr>
                   )}
                 </tbody>
